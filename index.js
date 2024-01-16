@@ -53,9 +53,9 @@ DBApp.listen(dbPORT, () =>{
 
 // })
 
-// DBApp.get('/login', (req,res)=>{
-//     res.send(JSON.stringify(data));
-// })
+DBApp.get('/', (req, res) =>{
+    res.send("This is a test for online server")
+})
 
 DBApp.post('/getUser', multer().none(), (req,res) => {
     database.collection("Users").findOne({_id: ObjectId(req.body.userID)},(err, result) =>{
