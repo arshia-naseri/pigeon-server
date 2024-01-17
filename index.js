@@ -43,16 +43,6 @@ DBApp.listen(dbPORT, () =>{
 
 }) 
 
-// DBApp.get('/', (req, res) =>{
-//     database.collection("Chats").find({}).toArray((err,result)=>{
-//         if(err){
-//             res.send(err)
-//         }
-//         res.send(result[0])
-//     })
-
-// })
-
 DBApp.get('/', (req, res) =>{
     res.send("This is a test for online server")
 })
@@ -147,57 +137,172 @@ DBApp.post('/getUserChatRoomList',multer().none(), async(req,res) =>{
         },
     };
 
-    const unwindStage = {
-        $unwind: "$participants",
-    };
-
-    const lookupStage = {
-        $lookup: {
-          from: "Users",
-          localField: "participants",
-          foreignField: "_id",
-          as: "Users",
-        },
-    };
-
-    const pipeline = [matchStage, unwindStage, lookupStage,
-        {
-            $group: {
-              _id: '$_id',
-              chatRoomID: { $first: '$chatRoomID' },
-              message: { $first: '$message' },
-              isGroupChat: { $first: '$isGroupChat' },
-              groupName: {$first: '$groupName'},
-            //   participants: { $first: '$participants' },
-              Users: { $push: '$Users' },
+    const pipeline = [matchStage,
+          {
+            $unwind: {
+              path: "$participants",
             },
-        },
-        {
+          },
+          {
+            $lookup: {
+              from: "Users",
+              localField: "participants",
+              foreignField: "_id",
+              as: "Users",
+            },
+          },
+          {
+            $group: {
+              _id: "$_id",
+              groupName: {
+                $first: "$groupName",
+              },
+              message: {
+                $first: "$message",
+              },
+              isGroupChat: {
+                $first: "$isGroupChat",
+              },
+              groupName: {
+                $first: "$groupName",
+              },
+              Users: {
+                $push: "$Users",
+              },
+              lastUpdate: {
+                $first: "$lastUpdate",
+              },
+            },
+          },
+          {
             $sort: {
-                _id: -1
-            }
-        },
-        {
+              lastUpdate: -1,
+            },
+          },
+          {
             $project: {
+              message: 1,
+              _id: 1,
+              isGroupChat: 1,
+              groupName: 1,
+              lastUpdate: 1,
+              participants: {
+                $map: {
+                  input: "$Users",
+                  as: "data",
+                  in: {
+                    name: {
+                      $arrayElemAt: ["$$data.name", 0],
+                    },
+                    username: {
+                      $arrayElemAt: [
+                        "$$data.username",
+                        0,
+                      ],
+                    },
+                    avatarPic: {
+                      $arrayElemAt: [
+                        "$$data.avatarPic",
+                        0,
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+          {
+            $unwind:
+              {
+                path: "$message",
+              },
+          },
+          {
+            $sort:
+              {
+                "message.time": 1,
+              },
+          },
+          {
+            $lookup: {
+              from: "Users",
+              localField: "message.from",
+              foreignField: "_id",
+              as: "message.from",
+            },
+          },
+          {
+            $group: {
+              _id: "$_id",
+              lastUpdate: {
+                $first: "$lastUpdate",
+              },
+              groupName: {
+                $first: "$groupName",
+              },
+              isGroupChat: {
+                $first: "$isGroupChat",
+              },
+              participants: {
+                $first: "$participants",
+              },
+              messages: {
+                $push: "$message",
+              },
+            },
+          },
+          {
+            $project:
+              {
                 _id: 1,
-                chatRoomID: 1,
-                message: 1,
+                groupName: 1,
                 isGroupChat: 1,
                 participants: 1,
-                groupName: 1,
-                participants: {
-                    $map: {
-                        input: '$Users',
-                        as: 'data',
-                        in: {
-                            name: { $arrayElemAt: ['$$data.name', 0] },
-                            username: { $arrayElemAt: ['$$data.username', 0] },
-                            avatarPic: { $arrayElemAt: ['$$data.avatarPic', 0] },
-                        },
+                lastUpdate: 1,
+                messages: {
+                  $map: {
+                    input: "$messages",
+                    as: "message",
+                    in: {
+                      text: "$$message.text",
+                      time: "$$message.time",
+                      from: {
+                        $arrayElemAt: [
+                          "$$message.from",
+                          0,
+                        ],
+                      },
                     },
-                }
-            }
-        }
+                  },
+                },
+              },
+          },
+          {
+            $project: {
+              _id: 1,
+              groupName: 1,
+              isGroupChat: 1,
+              participants: 1,
+              lastUpdate: 1,
+              messages: {
+                $map: {
+                  input: "$messages",
+                  as: "message",
+                  in: {
+                    text: "$$message.text",
+                    time: "$$message.time",
+                    from: {
+                      name: "$$message.from.name",
+                      username: "$$message.from.username",
+                      avatarPic:
+                        "$$message.from.avatarPic",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          
     ]
 
     const result = await database.collection("Chats").aggregate(pipeline).toArray();
