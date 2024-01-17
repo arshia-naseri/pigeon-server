@@ -302,6 +302,11 @@ DBApp.post('/getUserChatRoomList',multer().none(), async(req,res) =>{
               },
             },
           },
+          {
+            $sort: {
+              lastUpdate: -1,
+            },
+          },
           
     ]
 
