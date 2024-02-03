@@ -302,5 +302,14 @@ DBApp.post('/getUserChatRoomList',multer().none(), async(req,res) =>{
 })
 
 DBApp.post('/updateChatMessage', multer().none(), async(req,res) => {
-    console.log(req.body)
+    const {id, time, text, roomID} = req.body
+    
+    database.collection("Chats").updateOne(
+      { "_id": ObjectId(roomID) }, 
+      {
+        "$push": {
+          "message": {from:ObjectId(id), time: new Date(time), text}
+        }
+      }
+    )
 })
