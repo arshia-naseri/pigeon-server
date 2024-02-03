@@ -3,32 +3,15 @@ const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const bodyParser = require("body-parser");
-// const socketIO = require("socket.io");
-const { ObjectId, Db } = require("mongodb");
+const { ObjectId } = require("mongodb");
+const { pipeline } = require("stream");
 const Mongoclient = require("mongodb").MongoClient;
-
-// const socketApp = express();
-// const socketServer = http.createServer(socketApp);
-// const io = socketIO(socketServer);
-// const socketPORT = process.env.SOCKET_PORT || 5050;
-// socketApp.use(cors());
 
 const DBApp = express();
 const dbPORT = process.env.DB_PORT || 5040;
 DBApp.use(cors());
 DBApp.use(bodyParser.json());
-DBApp.use(
-    bodyParser.urlencoded({extended: true})
-)
-
-// const router = require("./router");
-
-// socketApp.use(router);
-
-// socketServer.listen(socketPORT, () =>{
-//     console.log(`Socket Server Connected on PORT ${socketPORT}`);
-// });
-
+DBApp.use(bodyParser.urlencoded({extended: true}))
 
 
 var CONNECTION_STRING = "mongodb+srv://admin:arshia1379@cluster0.fiiwyu6.mongodb.net/?retryWrites=true&w=majority"
@@ -127,6 +110,9 @@ DBApp.post('/signup', multer().none(), async (req, res) =>{
 
 DBApp.post('/getUserChatRoomList',multer().none(), async(req,res) =>{
     const ids = req.body.chatRoomIDList;
+    if(ids === undefined){
+      res.send('err')
+    }
     const objIDs = ids.map((id) => {
         return ObjectId(id);
     })
@@ -313,4 +299,8 @@ DBApp.post('/getUserChatRoomList',multer().none(), async(req,res) =>{
     const result = await database.collection("Chats").aggregate(pipeline).toArray();
     
     res.send(result)
+})
+
+DBApp.post('/updateChatMessage', multer().none(), async(req,res) => {
+    console.log(req.body)
 })
