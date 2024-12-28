@@ -54,10 +54,7 @@ DBApp.post("/login", multer().none(), (req, res) => {
         } else if (result) {
           res.send(result._id);
         } else {
-          const error = new Error("User was not found. Try Again");
-          error.statusCode = 404;
-          throw error;
-          // res.send("m-User was not found. Try Again");
+          res.status(404).send({ error: "User not found. Try Again." });
         }
       }
     );
