@@ -70,7 +70,10 @@ DBApp.post("/signup", multer().none(), async (req, res) => {
       if (err) {
         res.send(err);
       } else if (result) {
-        res.send("m-Username already exists. Try another username");
+        res
+          .status(404)
+          .send({ error: "Username already exists. Try another username" });
+        // res.send("m-Username already exists. Try another username");
         doesUserExit = true;
       } else {
         doesUserExit = false;
@@ -90,7 +93,9 @@ DBApp.post("/signup", multer().none(), async (req, res) => {
   });
 
   if (result == null) {
-    res.send("m-Something went wrong while adding the new user");
+    res
+      .status(404)
+      .send({ error: "Something went wrong while adding the new user" });
     return;
   }
 
