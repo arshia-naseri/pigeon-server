@@ -29,18 +29,76 @@ DBApp.get("/", (req, res) => {
   res.send("This is a test for online server");
 });
 
-DBApp.post("/getUser", multer().none(), (req, res) => {
-  database
-    .collection("Users")
-    .findOne({ _id: ObjectId(req.body.userID) }, (err, result) => {
-      if (err) {
-        res.send(err);
-      } else if (result) {
-        res.send(result);
-      } else {
-        console.log("Other case2");
-      }
-    });
+// DBApp.post("/getUser", multer().none(), (req, res) => {
+//   database
+//     .collection("Users")
+//     .findOne({ _id: ObjectId(req.body.userID) }, (err, result) => {
+//       if (err) {
+//         res.send(err);
+//       } else if (result) {
+//         res.send(result);
+//       } else {
+//         console.log("Other case2");
+//       }
+//     });
+// });
+
+DBApp.post("/getUser", multer().none(), async (req, res) => {
+  const pipeline = [
+    {
+      $match: {
+        _id: ObjectId(req.body.userID),
+      },
+    },
+    {
+      $lookup: {
+        from: "Users",
+        localField: "contacts",
+        foreignField: "_id",
+        as: "contacts",
+      },
+    },
+    {
+      $unwind: {
+        path: "$contacts",
+      },
+    },
+    {
+      $project: {
+        "contacts._id": 0,
+        "contacts.password": 0,
+        "contacts.contacts": 0,
+        "contacts.chatRoomIDList": 0,
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        allFields: {
+          $first: "$$ROOT",
+        },
+        contacts: {
+          $push: "$contacts",
+        },
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          $mergeObjects: [
+            "$allFields",
+            {
+              contacts: "$contacts",
+            },
+          ],
+        },
+      },
+    },
+  ];
+
+  const result = await database.collection("Users").aggregate(pipeline);
+
+  res.send(result);
 });
 
 DBApp.post("/login", multer().none(), (req, res) => {
