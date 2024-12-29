@@ -61,39 +61,40 @@ DBApp.post("/login", multer().none(), (req, res) => {
 });
 
 DBApp.post("/signup", multer().none(), async (req, res) => {
-  try {
-    // Check if the user already exists
-    const existingUser = await database
-      .collection("Users")
-      .findOne({ username: req.body.username });
+  let doesUserExit;
 
-    if (existingUser) {
-      return res
-        .status(404)
-        .send({ error: "Username already exists. Try another username" });
-    }
-
-    const data = req.body;
-
-    // Add the new user
-    const result = await database.collection("Users").insertOne({
-      name: data.name,
-      username: data.username,
-      password: data.password,
-      avatarPic: data.avatarPic,
-      chatRoomIDList: [],
+  // Check to see if the user is already exists
+  database
+    .collection("Users")
+    .findOne({ username: req.body.username }, (err, result) => {
+      if (err) {
+        res.send(err);
+      } else if (result) {
+        res.send("m-Username already exists. Try another username");
+        doesUserExit = true;
+      } else {
+        doesUserExit = false;
+      }
     });
 
-    if (!result.insertedId) {
-      return res
-        .status(404)
-        .send({ error: "Something went wrong while adding the new user" });
-    }
+  if (doesUserExit === true) return;
 
-    res.send({ id: result.insertedId });
-  } catch (err) {
-    res.status(500).send({ error: "Internal server error", details: err });
+  const data = req.body;
+  //If the username does not exist, add the user
+  const result = await database.collection("Users").insertOne({
+    name: data.name,
+    username: data.username,
+    password: data.password,
+    avatarPic: data.avatarPic,
+    chatRoomIDList: [],
+  });
+
+  if (result == null) {
+    res.send("m-Something went wrong while adding the new user");
+    return;
   }
+
+  res.send(result.insertedId);
 });
 
 DBApp.post("/getContact", multer().none(), async (req, res) => {
