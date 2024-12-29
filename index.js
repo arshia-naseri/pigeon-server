@@ -96,7 +96,10 @@ DBApp.post("/getUser", multer().none(), async (req, res) => {
     },
   ];
 
-  const result = await database.collection("Users").aggregate(pipeline);
+  const result = await database
+    .collection("Users")
+    .aggregate(pipeline)
+    .toArray();
 
   res.send(result);
 });
